@@ -1,97 +1,71 @@
-# Ai_coustics
+# ai|coustics Data Engineering case study <img align="left" alt="HTML5" width="40px" src="https://github.com/namitkharade/ai_coustics/assets/42877539/81ff161f-c9c0-4879-8557-b39eb8beacce" />
 
+This case study showcases the use of **`Apache Airflow`** to create a pipeline that sequentially executes tasks for crawling, loading, and classifying speech data. The pipeline consists of the following tasks:
 
-## crawl.py
-`crawl.py` is a Python script designed to crawl and download speech data from the internet, specifically Freesound. The script's functionality includes:
-
+**`crawl.py`**:
+is designed to crawl and download speech data from Freesound. The script's functionality includes:
 - Performing a search on Freesound using a query specified in `config.py`.
 - Retrieving a specified number of results.
 - Downloading each sound result using the `download_sound` function.
 
-## load.py
-`load.py` is a Python script for loading audio file information into a database. Its features include:
-
-- Extracting information from each audio file, such as title, file path, and duration, using the `librosa` library.
+**`load.py`**:
+is for loading audio file information into a database. Its features include:
+- Extract information from each audio file, such as title, file path, and duration, using the `librosa` library.
 - Creating a table named `audio_info` in an SQLite database, with fields for ID, title, file path, duration, PESQ score, and quality label.
 - Inserting audio file information into the `audio_info` table.
-- Processing all audio files in a specified directory and inserting their information into the database.
 - The script is designed to handle audio files in formats like MP3, WAV, OGG, and FLAC.
 
-## classify.py
-`classify.py` is a Python script for classifying speech audio files based on speech quality using the Perceptual Evaluation of Speech Quality (PESQ) metric. Its functionalities include:
-
+**`classify.py`**:
+is for classifying speech audio files based on speech quality using the Perceptual Evaluation of Speech Quality (PESQ) metric. Its functionalities include:
 - Loading a reference audio file and a degraded (target) audio file using `librosa`.
 - Calculating the PESQ score using the `pesq` library, which measures the quality of the target audio compared to the reference.
 - Classifying the audio quality based on the PESQ score into categories like "Excellent," "Good," "Fair," or "Poor."
 - Connecting to the SQLite database specified in `config.py`.
-- Retrieving audio file information.
-- Calculating PESQ scores and quality labels for each audio file.
 - Updating the database with PESQ scores and quality classifications.
 
+**`sqlite.py`**:
+to connect to the SQLite database and execute a SELECT query to retrieve all rows from a table named audio_info.
 
-# How to Use
-1. Set up the necessary configurations in `config.py` (API key, query terms, desired number of results, download folder).
-2. Run `crawl.py` to initiate the crawling process:
-   ```
-   python crawl.py
-   ```
-4. Run `load.py` to load audio file information into the database:
-   ```
-   python load.py
-   ```
-6. Run `classify.py` to classify speech audio files based on quality:
-   ```
-   python classify.py
-   ```
-
-
-# Production Architecture:
-In a production environment with a focus on scalability, efficiency, and integration with cloud services, incorporating Apache Airflow and Google Cloud Platform (GCP) can enhance the overall data pipeline for crawling, storing, and classifying speech data.
-
-- Use Apache Airflow to schedule and orchestrate the crawling, storing and classifying process. Define an Airflow DAG (Directed Acyclic Graph) that includes tasks for running the `crawl.py`, `load.py` and `classify.py`  script at specified intervals in a given sequence.
-- Utilize GCP's Cloud Storage to store the downloaded audio files, leveraging its scalability and durability.
-- Integrate with a relational database service, such as PostgreSQL, to store structured metadata.
-
-## Apache Airflow DAG
+  
+## Steps to run
+### Step 1: Clone Repository
+Clone the project repository from the provided GitHub link:
 ```
-from airflow import DAG
-from airflow.operators.python_operator import PythonOperator
-from datetime import datetime, timedelta
+git clone https://github.com/namitkharade/ai_coustics.git
+```
 
-default_args = {
-    'owner': 'namit',
-    'start_date': datetime(2023, 1, 1),
-    'retries': 1,
-    'retry_delay': timedelta(minutes=5),
-}
+### Step 2: Initialize Airflow Database
+Run the following command to set up the Airflow database:
+```
+docker compose up airflow-init
+```
 
-dag = DAG(
-    'aicoustics_data_pipeline',
-    default_args=default_args,
-    description='Speech data pipeline',
-    schedule_interval='@daily',
-)
+### Step 3: Build Docker Containers
+Build the Docker containers for the application:
+```
+docker compose up --build
+```
 
-crawl_task = PythonOperator(
-    task_id='crawl_task',
-    python_callable=crawl_function,
-    dag=dag,
-)
+### Step 4: Configure Settings
+Edit the `config.py` file to set up the necessary configurations. Ensure to include the API key, query term, desired number of results, and the path of reference audio.
 
-load_task = PythonOperator(
-    task_id='load_task',
-    python_callable=load_function,
-    dag=dag,
-)
+### Step 5: Start Airflow WebUI
+The Airflow web user interface (WebUI) will be accessible after running the containers. Open a web browser and go to ```http://localhost:8080``` to access the Airflow WebUI. 
+Log in to the Airflow WebUI using the default credentials (username: airflow, password: airflow).
 
-classify_task = PythonOperator(
-    task_id='classify_task',
-    python_callable=classify_function,
-    dag=dag,
-)
+### Step 6: Trigger Acoustics Processing DAG
+In the Airflow WebUI, locate and trigger the `ai_coustics_processing` Directed Acyclic Graph (DAG) to initiate the acoustics processing tasks.
 
-# Define task dependencies
-crawl_task >> load_task >> classify_task
+### Step 7: Execute Bash Commands
+To execute bash commands inside the running Docker container, use the following command:
+```
+docker exec -it <container name> /bin/bash
 ```
 
 
+## Production Architecture solution:
+In a production environment with a focus on scalability, efficiency, and integration with cloud services, using Apache Airflow and Google Cloud Platform can enhance the overall data pipeline.
+
+For the audio files, we can use Google Cloud Storage. It integrates nicely with other GCP services, which is essential for streamlined machine learning workflows. If the metadata is semi-structured and doesn't require complex querying, a NoSQL solution like Google Cloud Firestore or Bigtable can be used. However, if the metadata is highly structured and demands more intricate query capabilities, we can opt for a relational database like BigQuery. GCP also offers various AI and machine learning services, they can directly access data stored in Cloud Storage and metadata in Firestore or BigQuery. 
+
+We also utilize Airflow to orchestrate the data processing workflows. It is good for automating the pipeline, from managing the extraction of audio, to processing them, and storing the results.

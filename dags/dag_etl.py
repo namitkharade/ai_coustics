@@ -12,15 +12,17 @@ import config
 default_args = {
     'owner': 'namit',
     'depends_on_past': False,
-    'start_date': datetime(2023, 11, 30),
+    'start_date': datetime(2023, 12, 1),
     'retries': 1,
     'retry_delay': timedelta(minutes=2),
 }
 
-dag = DAG('ai_acoustics_processing',
+dag = DAG('ai_coustics_processing',
           default_args=default_args,
-          description='AI Acoustics processing with Airflow',
-          schedule_interval=timedelta(days=1))
+          description='ai-coustics processing with Airflow',
+          max_active_runs=1,
+          #schedule_interval=timedelta(days=1)
+          )
 
 # Function to run Python script
 def run_python_script(script_name):
